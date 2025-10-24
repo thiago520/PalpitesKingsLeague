@@ -9,6 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "worker:dev": "tsx worker/chat-worker.ts",
+    "worker:start": "tsx worker/chat-worker.ts",
     "seed": "prisma db seed"
   },
   "dependencies": {
