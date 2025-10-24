@@ -1,4 +1,4 @@
-// File: D:\Desenvolvimento\PalpitesKings\app\api\guesses\route.ts
+// File: /mnt/e/Projetos/PalpitesKingsLeague/app/api/guesses/route.ts
 import * as entry from '../../../../../app/api/guesses/route.js'
 import type { NextRequest } from 'next/server.js'
 

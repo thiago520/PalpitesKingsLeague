@@ -1,4 +1,4 @@
-// File: D:\Desenvolvimento\PalpitesKings\app\matches\[id]\page.tsx
+// File: /mnt/e/Projetos/PalpitesKingsLeague/app/matches/[id]/page.tsx
 import * as entry from '../../../../../app/matches/[id]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

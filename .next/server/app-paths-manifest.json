@@ -1,9 +1,6 @@
 {
-  "/page": "app/page.js",
   "/matches/page": "app/matches/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/ranking/page": "app/ranking/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/matches/[id]/page": "app/matches/[id]/page.js",
-  "/api/admin/streamers/route": "app/api/admin/streamers/route.js",
   "/api/matches/route": "app/api/matches/route.js"
 }

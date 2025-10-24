@@ -1,4 +1,4 @@
-// File: D:\Desenvolvimento\PalpitesKings\app\api\auth\twitch\login\route.ts
+// File: /mnt/e/Projetos/PalpitesKingsLeague/app/api/auth/twitch/login/route.ts
 import * as entry from '../../../../../../../app/api/auth/twitch/login/route.js'
 import type { NextRequest } from 'next/server.js'
 

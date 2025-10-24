@@ -10,7 +10,12 @@
     "prisma:migrate": "prisma migrate dev",
     "worker:dev": "tsx worker/chat-worker.ts",
     "worker:start": "tsx worker/chat-worker.ts",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "import:kl": "tsx scripts/import-kl-matches.ts",
+    "download:images": "tsx scripts/download-team-images.ts",
+    "download:images:v2": "tsx scripts/download-team-images-v2.ts",
+    "test:images": "tsx scripts/test-image-patterns.ts",
+    "download:spanish": "tsx scripts/download-spanish-teams.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",

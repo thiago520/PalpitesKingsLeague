@@ -1,4 +1,4 @@
-// File: D:\Desenvolvimento\PalpitesKings\app\api\auth\logout\route.ts
+// File: /mnt/e/Projetos/PalpitesKingsLeague/app/api/auth/logout/route.ts
 import * as entry from '../../../../../../app/api/auth/logout/route.js'
 import type { NextRequest } from 'next/server.js'
 
