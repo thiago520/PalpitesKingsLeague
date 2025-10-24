@@ -1,0 +1,177 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MatchRegion {
+  ES
+  MX
+  IT
+  BR
+  FR
+  DE
+  MENA
+}
+
+enum MatchStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  FINISHED
+}
+
+enum CaptureStatus {
+  OPEN
+  LOCKED
+}
+
+model Team {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  code      String      @unique
+  region    MatchRegion
+  badgeFile String?
+  aliases   TeamAlias[]
+  homeOf    Match[]     @relation("HomeTeam")
+  awayOf    Match[]     @relation("AwayTeam")
+
+  @@index([region])
+}
+
+model TeamAlias {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id])
+  alias  String
+
+  @@unique([teamId, alias])
+  @@index([alias])
+}
+
+model Match {
+  id       String      @id @default(cuid())
+  round    Int
+  region   MatchRegion
+  startsAt DateTime
+  status   MatchStatus @default(DRAFT)
+
+  // Times
+  homeId String
+  home   Team   @relation("HomeTeam", fields: [homeId], references: [id])
+  awayId String
+  away   Team   @relation("AwayTeam", fields: [awayId], references: [id])
+
+  // Info extra
+  notesHome  String?
+  notesAway  String?
+  lineupHome Json?
+  lineupAway Json?
+
+  // ⚠️ Campos legados (mantidos por compatibilidade, podem ser removidos depois)
+  captureChannelLogin    String?
+  captureStartedByUserId String?
+  captureStartedBy       User?     @relation("MatchesStarted", fields: [captureStartedByUserId], references: [id])
+  captureStartedAt       DateTime?
+
+  // Novo fluxo (multi-streamer)
+  captures Capture[]
+  guesses  Guess[]
+  result   Result?
+}
+
+model Capture {
+  id      String @id @default(cuid())
+  matchId String
+  match   Match  @relation(fields: [matchId], references: [id])
+
+  streamerUserId String
+  streamer       User   @relation(fields: [streamerUserId], references: [id])
+  channelLogin   String
+
+  status    CaptureStatus @default(OPEN)
+  startedAt DateTime      @default(now())
+  stoppedAt DateTime?
+
+  @@unique([matchId, streamerUserId])
+  @@index([streamerUserId])
+  @@index([matchId, status])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Twitch identity
+  twitchUserId String  @unique
+  login        String  @unique
+  displayName  String
+  avatarUrl    String?
+
+  // OAuth tokens
+  accessToken    String
+  refreshToken   String
+  accessTokenExp DateTime
+  scopes         String
+
+  sessions       Session[]
+  matchesStarted Match[]   @relation("MatchesStarted")
+
+  // guesses escopados pelo streamer (lado oposto de Guess.streamer)
+  streamerGuesses Guess[] @relation("GuessStreamer")
+
+  // histórico de capturas
+  captures Capture[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+model Guess {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matchId String
+  match   Match  @relation(fields: [matchId], references: [id])
+
+  // Escopo por canal/streamer que abriu a captura
+  streamerUserId String
+  streamer       User   @relation("GuessStreamer", fields: [streamerUserId], references: [id])
+  channelLogin   String
+
+  // Viewer (autor do palpite)
+  twitchUserId  String
+  twitchLogin   String
+  twitchDisplay String
+
+  goalsHome     Int
+  goalsAway     Int
+  pointsAwarded Int @default(0)
+
+  // Único por partida + streamer + viewer
+  @@unique([matchId, streamerUserId, twitchUserId])
+  @@index([twitchLogin])
+  @@index([streamerUserId])
+  @@index([channelLogin])
+}
+
+model Result {
+  matchId   String   @id
+  match     Match    @relation(fields: [matchId], references: [id])
+  goalsHome Int
+  goalsAway Int
+  decidedAt DateTime @default(now())
+}

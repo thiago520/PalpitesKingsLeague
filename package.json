@@ -1,0 +1,43 @@
+{
+  "name": "kings-palpites",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "worker:dev": "tsx worker/chat-worker.ts",
+    "seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.18.0",
+    "cookie": "^1.0.2",
+    "next": "^14.2.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "swr": "^2.3.6",
+    "tmi.js": "^1.8.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cookie": "^0.6.0",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "@types/tmi.js": "^1.8.6",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "prisma": "^6.18.0",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
