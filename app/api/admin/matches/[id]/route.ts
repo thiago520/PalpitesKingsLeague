@@ -1,32 +1,40 @@
 // app/api/admin/matches/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/db";
-import { requireAdmin } from "@/src/lib/auth";
+import { z } from "zod";
+
+const BodySchema = z.object({
+  round: z.number().int().min(1).optional(),
+  region: z.enum(["ES", "MX", "IT", "BR", "FR", "DE", "MENA"]).optional(),
+  startsAt: z.string().optional(), // ISO string
+  homeId: z.string().optional(),
+  awayId: z.string().optional(),
+  status: z.enum(["DRAFT", "OPEN", "LOCKED", "FINISHED"]).optional(),
+});
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
-  const body = await req.json();
+  const json = await req.json();
+  const body = BodySchema.parse(json);
+
+  const data: any = {};
+  if (body.round !== undefined) data.round = body.round;
+  if (body.region !== undefined) data.region = body.region;
+  if (body.startsAt !== undefined) data.startsAt = new Date(body.startsAt);
+  if (body.homeId !== undefined) data.homeId = body.homeId;
+  if (body.awayId !== undefined) data.awayId = body.awayId;
+  if (body.status !== undefined) data.status = body.status;
 
   const m = await prisma.match.update({
     where: { id: params.id },
-    data: {
-      round: body.round !== undefined ? Number(body.round) : undefined,
-      region: body.region,
-      startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
-      homeId: body.homeId,
-      awayId: body.awayId,
-      homeBadgeFile: body.homeBadgeFile ?? undefined,
-      awayBadgeFile: body.awayBadgeFile ?? undefined,
-      status: body.status, // opcional (DRAFT/OPEN/LOCKED/FINISHED)
-    },
-    include: { home: true, away: true },
+    data,
+    include: { home: true, away: true, result: true },
   });
 
+  // OBS: os badges vêm de Team.badgeFile (m.home.badgeFile / m.away.badgeFile)
   return NextResponse.json(m);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  await requireAdmin();
   await prisma.match.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }
