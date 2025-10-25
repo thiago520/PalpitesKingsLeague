@@ -203,6 +203,9 @@ export default async function MatchesPage({
             <span className="text-amber-300">Kings League</span> - Palpites
           </h1>
           <nav className="flex items-center gap-2">
+            <Link className="rounded-lg px-3 py-1.5 border border-green-400/30 hover:bg-zinc-900" href="/analytics">
+              📊 Analytics
+            </Link>
             <Link className="rounded-lg px-3 py-1.5 border border-amber-400/30 hover:bg-zinc-900" href="/ranking">
               🏆 Ranking
             </Link>
