@@ -91,6 +91,12 @@ export default async function RankingPage({
               🔰 Partidas
             </Link>
             <Link
+              href="/analytics"
+              className="rounded-lg px-3 py-1.5 border border-green-400/30 hover:bg-zinc-900"
+            >
+              📊 Analytics
+            </Link>
+            <Link
               href="/ranking"
               className="rounded-lg px-3 py-1.5 border border-amber-400/60 bg-zinc-900 text-amber-200"
             >
