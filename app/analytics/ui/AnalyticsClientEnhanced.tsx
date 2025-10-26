@@ -34,132 +34,6 @@ interface Props {
     data: AnalyticsData;
 }
 
-// Função para gerar dados aleatórios aprimorada
-const generateFakeData = (): AnalyticsData => {
-    // Gerar nomes de usuários aleatórios
-    const fakeUsers = [
-        'PalpiteMaster', 'GoalHunter', 'ScoreWizard', 'MatchPredictor', 'LeagueExpert',
-        'FootballFan', 'BetKing', 'PredictorPro', 'GoalGetter', 'MatchMaker',
-        'ScoreGenius', 'MatchSage', 'PredictKing', 'GoalOracle', 'BetWizard'
-    ];
-
-    // Placares mais comuns no futebol
-    const commonScores = [
-        '1x0', '2x1', '1x1', '2x0', '0x1', '3x1', '2x2', '0x0', '3x0', '1x2',
-        '4x1', '0x2', '3x2', '4x0', '2x3', '1x3', '5x1', '0x3', '4x2', '5x0'
-    ];
-
-    // Times fictícios
-    const fakeTeams = [
-        'Porcinos FC', 'Rayo de Barcelona', 'Saiyans FC', 'Pio FC', 'Xbuyer Team',
-        'Los Troncos FC', 'Jijantes FC', 'Kunisports', '1K FC', 'Aniquiladores FC',
-        'El Barrio', 'Spartans'
-    ];
-
-    // Gerar distribuição de resultados
-    const homeWins = Math.floor(Math.random() * 100) + 50;
-    const awayWins = Math.floor(Math.random() * 80) + 40;
-    const draws = Math.floor(Math.random() * 30) + 20;
-
-    const outcomeDistribution = [
-        { name: 'Vitória Casa', value: homeWins, color: '#10B981' },
-        { name: 'Vitória Visitante', value: awayWins, color: '#EF4444' },
-        { name: 'Empate', value: draws, color: '#F59E0B' }
-    ];
-
-    // Gerar taxa de acerto
-    const correctGuesses = Math.floor(Math.random() * 150) + 100;
-    const incorrectGuesses = Math.floor(Math.random() * 200) + 150;
-
-    const accuracyRate = [
-        { name: 'Acertos', value: correctGuesses, color: '#10B981' },
-        { name: 'Erros', value: incorrectGuesses, color: '#EF4444' }
-    ];
-
-    // Gerar top usuários
-    const topUsers = fakeUsers.slice(0, 8).map(name => ({
-        name,
-        points: Math.floor(Math.random() * 500) + 50,
-        guesses: Math.floor(Math.random() * 100) + 20
-    })).sort((a, b) => b.points - a.points);
-
-    // Gerar partidas por região
-    const regions = ['BR', 'ES', 'MX', 'IT', 'FR', 'DE', 'MENA'];
-    const matchesByRegion = regions.map(region => ({
-        region,
-        count: Math.floor(Math.random() * 50) + 10
-    }));
-
-    // Gerar dados temporais (últimos 10 dias)
-    const guessesOverTime = Array.from({ length: 10 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (9 - i));
-        return {
-            date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            count: Math.floor(Math.random() * 50) + 10
-        };
-    });
-
-    // Gerar status das partidas
-    const matchStatus = [
-        { name: 'Rascunho', value: Math.floor(Math.random() * 20) + 5, color: '#6B7280' },
-        { name: 'Aberta', value: Math.floor(Math.random() * 15) + 8, color: '#10B981' },
-        { name: 'Travada', value: Math.floor(Math.random() * 10) + 3, color: '#F59E0B' },
-        { name: 'Finalizada', value: Math.floor(Math.random() * 80) + 40, color: '#3B82F6' }
-    ];
-
-    // NOVO: Gerar ranking de placares mais usados
-    const topScores = commonScores.slice(0, 10).map(score => {
-        const count = Math.floor(Math.random() * 100) + 20;
-        const total = 500; // Total fictício de palpites
-        return {
-            score,
-            count,
-            percentage: ((count / total) * 100)
-        };
-    }).sort((a, b) => b.count - a.count);
-
-    // NOVO: Gerar primeiros palpiteiros por ordem cronológica
-    const firstGuessers = Array.from({ length: 8 }, (_, i) => {
-        const date = new Date();
-        date.setHours(date.getHours() - (Math.random() * 48)); // Últimas 48h
-        const homeTeam = fakeTeams[Math.floor(Math.random() * fakeTeams.length)];
-        const awayTeam = fakeTeams[Math.floor(Math.random() * fakeTeams.length)];
-
-        return {
-            user: fakeUsers[Math.floor(Math.random() * fakeUsers.length)],
-            date: date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            }),
-            score: commonScores[Math.floor(Math.random() * 10)],
-            match: `${homeTeam} vs ${awayTeam}`
-        };
-    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // NOVO: Distribuição de placares por popularidade (para gráfico de pizza)
-    const scoresByPopularity = topScores.slice(0, 6).map((item, index) => ({
-        name: item.score,
-        value: item.count,
-        color: [
-            '#FCD34D', '#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#3B82F6'
-        ][index] || '#6B7280'
-    }));
-
-    return {
-        outcomeDistribution,
-        accuracyRate,
-        topUsers,
-        matchesByRegion,
-        guessesOverTime,
-        matchStatus,
-        topScores,
-        firstGuessers,
-        scoresByPopularity
-    };
-};
 
 // Dados vazios
 const emptyData: AnalyticsData = {
@@ -176,45 +50,23 @@ const emptyData: AnalyticsData = {
 
 export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
     const [selectedChart, setSelectedChart] = useState('overview');
-    const [data, setData] = useState<AnalyticsData>(initialData);
+    const [data] = useState<AnalyticsData>(initialData);
 
     const chartTabs = [
         { id: 'overview', label: '📊 Visão Geral' },
         { id: 'users', label: '👥 Usuários' },
-        { id: 'scores', label: '⚽ Placares', new: true }, // NOVA ABA
-        { id: 'timeline', label: '⏰ Timeline', new: true }, // NOVA ABA
+        { id: 'scores', label: '⚽ Placares' },
+        { id: 'timeline', label: '⏰ Timeline' },
         { id: 'matches', label: '🏆 Partidas' },
         { id: 'trends', label: '📈 Tendências' }
     ];
 
-    const handleGenerateFakeData = () => {
-        const fakeData = generateFakeData();
-        setData(fakeData);
-    };
-
-    const handleClearData = () => {
-        setData(emptyData);
-    };
-
     return (
         <div className="space-y-6">
-            {/* Botões de controle */}
-            <div className="flex gap-3 p-4 rounded-2xl border border-amber-400/20 bg-zinc-900/60 shadow-[0_0_0_1px_rgba(255,196,28,0.08)]">
-                <button
-                    onClick={handleGenerateFakeData}
-                    className="px-4 py-2 rounded-xl bg-amber-400 text-black font-semibold hover:bg-amber-300 active:translate-y-px transition"
-                >
-                    🎲 Gerar Dados Fake
-                </button>
-                <button
-                    onClick={handleClearData}
-                    className="px-4 py-2 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
-                >
-                    🗑️ Limpar Dados
-                </button>
-                <div className="flex-1" />
-                <div className="text-sm text-zinc-400 flex items-center">
-                    💡 Dados salvos apenas em memória | ✨ Novas funcionalidades: Ranking de Placares e Timeline
+            {/* Info Header */}
+            <div className="flex gap-3 p-4 rounded-2xl border border-green-400/20 bg-green-900/20 shadow-[0_0_0_1px_rgba(34,197,94,0.08)]">
+                <div className="text-sm text-green-400 flex items-center">
+                    ✨ Dashboard com dados reais da Kings League Brasil | 📊 Analytics em tempo real
                 </div>
             </div>
 
@@ -225,16 +77,11 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                         key={tab.id}
                         onClick={() => setSelectedChart(tab.id)}
                         className={`px-4 py-2 rounded-t-lg font-semibold transition relative ${selectedChart === tab.id
-                                ? 'bg-amber-400 text-black border-b-2 border-amber-400'
-                                : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
+                            ? 'bg-amber-400 text-black border-b-2 border-amber-400'
+                            : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
                             }`}
                     >
                         {tab.label}
-                        {tab.new && (
-                            <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 rounded-full">
-                                NEW
-                            </span>
-                        )}
                     </button>
                 ))}
             </div>
@@ -269,7 +116,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-80 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -301,7 +148,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-80 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -345,7 +192,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-96 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -377,7 +224,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-80 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -425,7 +272,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-96 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -469,7 +316,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-96 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -508,7 +355,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-96 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>
@@ -554,7 +401,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                             </div>
                         ) : (
                             <div className="h-96 flex items-center justify-center text-zinc-500">
-                                Nenhum dado disponível. Clique em "Gerar Dados Fake" para testar.
+                                Nenhum dado disponível no momento.
                             </div>
                         )}
                     </div>

@@ -5,6 +5,29 @@ import { getSession } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
 import AnalyticsClientEnhanced from "./ui/AnalyticsClientEnhanced";
 
+async function getAnalyticsData() {
+    const base = process.env.APP_URL ?? "http://localhost:3000";
+    try {
+        const res = await fetch(`${base}/api/analytics`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Falha ao carregar dados de analytics");
+        return res.json();
+    } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        // Dados vazios em caso de erro
+        return {
+            outcomeDistribution: [],
+            accuracyRate: [],
+            topUsers: [],
+            matchesByRegion: [],
+            guessesOverTime: [],
+            matchStatus: [],
+            topScores: [],
+            firstGuessers: [],
+            scoresByPopularity: []
+        };
+    }
+}
+
 export default async function AnalyticsPage({
     searchParams,
 }: {
@@ -17,19 +40,8 @@ export default async function AnalyticsPage({
         .replace(/^@/, "")
         .toLowerCase();
 
-    // Dados vazios iniciais - será preenchido com dados fake via botão
-    const initialData = {
-        outcomeDistribution: [],
-        accuracyRate: [],
-        topUsers: [],
-        matchesByRegion: [],
-        guessesOverTime: [],
-        matchStatus: [],
-        // Novos dados
-        topScores: [],
-        firstGuessers: [],
-        scoresByPopularity: []
-    };    // Mostrar a imagem apenas para o login "andreachinii"
+    // Buscar dados reais do banco de dados
+    const initialData = await getAnalyticsData();    // Mostrar a imagem apenas para o login "andreachinii"
     const showChini = (session.user.login || "").toLowerCase() === "andreachinii";
 
     return (
