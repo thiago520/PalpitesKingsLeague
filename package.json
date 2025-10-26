@@ -11,7 +11,7 @@
     "worker:dev": "tsx worker/chat-worker.ts",
     "worker:start": "tsx worker/chat-worker.ts",
     "seed": "prisma db seed",
-    "create-matches-with-results": "tsx scripts/create-matches-with-results.ts",
+    "create-matches-with-results": "tsx scripts/create-matches-with-results.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
