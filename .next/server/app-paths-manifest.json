@@ -1,1 +1,4 @@
-{}
+{
+  "/matches/page": "app/matches/page.js",
+  "/api/matches/route": "app/api/matches/route.js"
+}
