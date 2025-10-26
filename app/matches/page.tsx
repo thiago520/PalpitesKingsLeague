@@ -17,6 +17,10 @@ type Match = {
   away: { name: string };
   homeBadgeFile?: string | null;
   awayBadgeFile?: string | null;
+  result?: {
+    goalsHome: number;
+    goalsAway: number;
+  } | null;
 };
 
 const REGION_LABELS: Record<Region, string> = {
@@ -101,16 +105,52 @@ function Crest({ file, alt }: { file?: string | null; alt: string }) {
 }
 
 function MatchCard({ m }: { m: Match }) {
+  const isFinished = m.status === "FINISHED" && m.result;
+
   return (
-    <div className="rounded-2xl border border-amber-400/20 bg-zinc-900/60 p-5 shadow-[0_0_0_1px_rgba(255,196,28,0.08),0_18px_50px_-20px_rgba(0,0,0,.8)]">
-      {/* Linha superior: escudo - VS - escudo */}
+    <div className={[
+      "rounded-2xl border p-5 shadow-[0_0_0_1px_rgba(255,196,28,0.08),0_18px_50px_-20px_rgba(0,0,0,.8)]",
+      isFinished
+        ? "border-green-400/20 bg-green-900/20"
+        : "border-amber-400/20 bg-zinc-900/60"
+    ].join(" ")}>
+      {/* Status badge para jogos finalizados */}
+      {isFinished && (
+        <div className="mb-3 flex justify-center">
+          <span className="inline-block px-3 py-1 bg-green-600 text-green-50 text-xs font-semibold rounded-full uppercase tracking-wide">
+            Finalizado
+          </span>
+        </div>
+      )}
+
+      {/* Linha superior: escudo - PLACAR/VS - escudo */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col items-center gap-2 w-1/3">
           <Crest file={m.homeBadgeFile} alt={m.home.name} />
           <div className="text-sm font-semibold text-zinc-100 text-center">{m.home.name}</div>
         </div>
 
-        <div className="w-1/3 text-center font-extrabold text-amber-400 text-xl">VS</div>
+        <div className="w-1/3 text-center">
+          {isFinished ? (
+            <div className="font-extrabold text-xl">
+              <span className={[
+                "text-2xl",
+                (m.result!.goalsHome > m.result!.goalsAway) ? "text-green-400" : "text-zinc-300"
+              ].join(" ")}>
+                {m.result!.goalsHome}
+              </span>
+              <span className="text-zinc-500 mx-2">x</span>
+              <span className={[
+                "text-2xl",
+                (m.result!.goalsAway > m.result!.goalsHome) ? "text-green-400" : "text-zinc-300"
+              ].join(" ")}>
+                {m.result!.goalsAway}
+              </span>
+            </div>
+          ) : (
+            <div className="font-extrabold text-amber-400 text-xl">VS</div>
+          )}
+        </div>
 
         <div className="flex flex-col items-center gap-2 w-1/3">
           <Crest file={m.awayBadgeFile} alt={m.away.name} />
@@ -136,12 +176,24 @@ function MatchCard({ m }: { m: Match }) {
 
       {/* CTA */}
       <div className="mt-5">
-        <Link
-          href={`/matches/${m.id}`}
-          className="block w-full text-center rounded-xl bg-amber-400 text-black font-semibold py-3 hover:bg-amber-300 active:translate-y-px transition"
-        >
-          Fazer Palpite
-        </Link>
+        {isFinished ? (
+          <div className="text-center py-3 rounded-xl bg-zinc-800 text-zinc-400 font-semibold">
+            {m.result!.goalsHome === m.result!.goalsAway ? (
+              "Empate"
+            ) : (
+              <>Vencedor: {
+                m.result!.goalsHome > m.result!.goalsAway ? m.home.name : m.away.name
+              }</>
+            )}
+          </div>
+        ) : (
+          <Link
+            href={`/matches/${m.id}`}
+            className="block w-full text-center rounded-xl bg-amber-400 text-black font-semibold py-3 hover:bg-amber-300 active:translate-y-px transition"
+          >
+            Fazer Palpite
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -219,8 +271,8 @@ export default async function MatchesPage({
       </header>
 
       <section className="relative z-10 mx-auto max-w-6xl px-4 py-6">
-        <h2 className="text-3xl font-extrabold text-amber-300">Próxima Rodada</h2>
-        <p className="text-zinc-400 mt-1">Faça seus palpites nas partidas da semana</p>
+        <h2 className="text-3xl font-extrabold text-amber-300">Partidas</h2>
+        <p className="text-zinc-400 mt-1">Acompanhe os resultados e faça seus palpites</p>
 
         {/* Tabs */}
         <div className="mt-4">
