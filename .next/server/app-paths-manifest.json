@@ -1,3 +1,6 @@
 {
-  "/matches/page": "app/matches/page.js"
+  "/admin/page": "app/admin/page.js",
+  "/matches/page": "app/matches/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/api/admin/streamers/route": "app/api/admin/streamers/route.js"
 }
