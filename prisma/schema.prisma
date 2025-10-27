@@ -16,6 +16,8 @@ enum MatchRegion {
   FR
   DE
   MENA
+  QL_ES
+  QL_MX
 }
 
 enum MatchStatus {
