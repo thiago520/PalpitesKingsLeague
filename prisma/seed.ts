@@ -167,6 +167,12 @@ const TEAMS_MX: TeamInput[] = [
     aliases: ["Simios", "Simios FC", "SIM"],
     badgeFile: "simios.png",
   },
+  {
+    code: "SEU",
+    name: "Straight Edge United",
+    aliases: ["Straight Edge United", "SEU", "Straight", "Edge"],
+    badgeFile: "straightedgeunited.png",
+  },
 ];
 
 /* ─────────────── 🇮🇹 ITALY ─────────────── */
