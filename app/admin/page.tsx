@@ -4,7 +4,7 @@ import { getSession } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
 import AdminClient from "./ui/AdminClient";
 
-type Region = "ES" | "MX" | "IT" | "BR" | "FR" | "DE" | "MENA";
+type Region = "ES" | "MX" | "IT" | "BR" | "FR" | "DE" | "MENA" | "QL_ES" | "QL_MX";
 
 export default async function AdminPage() {
   const session = await getSession();

@@ -85,6 +85,12 @@ const TEAMS_ES: TeamInput[] = [
     aliases: ["xBuyer", "xBuyer Team", "XBuyer Team", "XBU"],
     badgeFile: "xbuyerteam.png",
   },
+  {
+    code: "PIL",
+    name: "Las Pilares FC",
+    aliases: ["Las Pilares", "Las Pilares FC", "Pilares", "PIL"],
+    badgeFile: "laspilares.png",
+  },
 ];
 
 /* ─────────────── 🇲🇽 MEXICO ─────────────── */
