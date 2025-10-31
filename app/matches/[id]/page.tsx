@@ -176,7 +176,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
   // - Se a partida acabou globalmente, sempre mostra FINISHED.
   // - Caso contrário, usa o status por streamer (myCapture) quando existir; se não, mostra DRAFT.
   const effectiveStatus: Match["status"] =
-    m.status === "FINISHED" ? "FINISHED" : (m.myCapture?.status ?? "DRAFT");
+    m.status === "FINISHED" ? "FINISHED" : m.myCapture?.status ?? "DRAFT";
 
   const isOpenForMe = m.myCapture?.status === "OPEN";
 
@@ -185,6 +185,8 @@ export default function MatchPage({ params }: { params: { id: string } }) {
     m.home.code || m.away.code
       ? `${m.home.code ?? "HOME"} 3 x 2 ${m.away.code ?? "AWAY"}`
       : null;
+
+  const channelLogin = (m.myCapture?.channelLogin || "").toLowerCase();
 
   return (
     <main className="min-h-screen bg-[#0b0b0b] text-zinc-100">
@@ -206,7 +208,24 @@ export default function MatchPage({ params }: { params: { id: string } }) {
             </Link>
             <Link
               className="rounded-lg px-3 py-1.5 border border-amber-400/30 hover:bg-zinc-900"
-              href="/ranking"
+              href={
+                channelLogin
+                  ? `/ranking?channel=@${encodeURIComponent(channelLogin)}`
+                  : "/ranking"
+              }
+              title={
+                channelLogin
+                  ? `Ver ranking de @${channelLogin}`
+                  : "Ranking (informe/associe um canal)"
+              }
+              onClick={(e) => {
+                if (!channelLogin) {
+                  e.preventDefault();
+                  alert(
+                    "Este match não está associado a um canal no momento. Abra a captura ou acesse Ranking pelo menu de Partidas (que usa seu login)."
+                  );
+                }
+              }}
             >
               🏆 Ranking
             </Link>
