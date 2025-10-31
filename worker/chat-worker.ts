@@ -1,4 +1,7 @@
 // worker/chat-worker.ts
+import { config } from "dotenv";
+config(); // Carrega as variáveis do .env
+
 import tmi, { Client, ChatUserstate } from "tmi.js";
 import { prisma } from "../src/lib/db";
 import { SCORE_REGEX, normalizeName } from "../src/lib/utils";
@@ -30,18 +33,24 @@ async function buildAliases(teamId: string) {
 
 async function ensureClientFor(userId: string, login: string) {
   const existing = clients.get(userId);
-  if (existing) return existing;
+  if (existing) {
+    console.log(`[worker] Using existing client for ${login}`);
+    return existing;
+  }
+  console.log(`[worker] Creating new client for ${login}...`);
   const access = await ensureValidUserAccess(userId);
+  console.log(`[worker] Got access token for ${login}`);
   const client = new tmi.Client({
     options: { debug: false },
     identity: { username: login, password: `oauth:${access}` },
     channels: [`#${login}`],
     connection: { secure: true, reconnect: true },
   });
+  console.log(`[worker] Connecting to Twitch as ${login}...`);
   await client.connect();
   clients.set(userId, client);
   handlers.set(userId, new Map());
-  console.log(`[worker] Connected as ${login}`);
+  console.log(`[worker] Connected as ${login} ✅`);
   return client;
 }
 
@@ -72,6 +81,8 @@ async function tick() {
       where: { status: "OPEN", startedAt: { gt: since } },
       include: { match: { select: { id: true, homeId: true, awayId: true } }, streamer: { select: { id: true, login: true } } },
     });
+
+    console.log(`[worker] Found ${caps.length} OPEN captures since ${since.toISOString()}`);
 
     // agrupa por streamer
     const byUser = new Map<string, typeof caps>();
