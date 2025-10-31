@@ -4,32 +4,69 @@ import { PrismaClient, MatchRegion, MatchStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Mapeamento dos IDs dos times
-const TEAM_IDS = {
-    CAPIM: "cmh6865v9006ykax8zn7vedi7",        // 167
-    DENDELE: "cmh6865vi0075kax8mxwcj7d6",      // 161
-    DESIMPEDIDOS: "cmh6865vt007ckax8j83yoqy7", // 168
-    REAL_ELITE: "cmh6865w0007hkax8ky3wjuuz",   // 166
-    FLUXO: "cmh6865wb007okax8bk49f328",        // 160
-    FUNKBOL: "cmh6865wl007vkax8568ct4yt",      // 164
-    FURIA: "cmh68735m0082kax8m7bf3d61",        // 50
-    G3X: "cmh687360008bkax8zwkiz3sv",          // 49
-    LOUD: "cmh687367008gkax86ipp9kq9",         // 162
-    NYVELADOS: "cmh68736h008nkax8hajp5s8s"     // 163
+// Mapeamento dos códigos dos times para busca dinâmica (baseado na consulta SQL da base)
+const TEAM_CODES = {
+    CAPIM: "CAP",        // Capim FC
+    DENDELE: "DDL",      // Dendele FC  
+    DESIMPEDIDOS: "DSM", // Desimpedidos
+    REAL_ELITE: "ELT",   // FC Real Elite
+    FLUXO: "FLX",        // Fluxo FC
+    FUNKBOL: "FNK",      // Funkbol Clube
+    FURIA: "FUR",        // Furia FC
+    G3X: "G3X",          // G3X FC
+    LOUD: "LSC",         // LOUD SC
+    NYVELADOS: "NYV"     // Nyvelados FC
 };
 
-const ID_MAPPING: Record<number, string> = {
-    49: TEAM_IDS.G3X,           // G3X FC
-    50: TEAM_IDS.FURIA,         // Furia FC
-    160: TEAM_IDS.FLUXO,        // Fluxo FC
-    161: TEAM_IDS.DENDELE,      // Dendele FC
-    162: TEAM_IDS.LOUD,         // LOUD SC
-    163: TEAM_IDS.NYVELADOS,    // Nyvelados FC
-    164: TEAM_IDS.FUNKBOL,      // Funkbol Clube
-    166: TEAM_IDS.REAL_ELITE,   // FC Real Elite
-    167: TEAM_IDS.CAPIM,        // Capim FC
-    168: TEAM_IDS.DESIMPEDIDOS  // Desimpedidos
+// Mapeamento dos IDs antigos (do sistema anterior) para códigos dos times
+const CODE_MAPPING: Record<number, string> = {
+    49: TEAM_CODES.G3X,           // G3X FC
+    50: TEAM_CODES.FURIA,         // Furia FC
+    160: TEAM_CODES.FLUXO,        // Fluxo FC
+    161: TEAM_CODES.DENDELE,      // Dendele FC
+    162: TEAM_CODES.LOUD,         // LOUD SC
+    163: TEAM_CODES.NYVELADOS,    // Nyvelados FC
+    164: TEAM_CODES.FUNKBOL,      // Funkbol Clube
+    166: TEAM_CODES.REAL_ELITE,   // FC Real Elite
+    167: TEAM_CODES.CAPIM,        // Capim FC
+    168: TEAM_CODES.DESIMPEDIDOS  // Desimpedidos
 };
+
+// Função para buscar IDs dos times dinamicamente
+async function getTeamIds(): Promise<Record<string, string>> {
+    console.log("🔍 Buscando IDs dos times na base de dados...");
+
+    const teams = await prisma.team.findMany({
+        where: {
+            region: "BR",
+            code: {
+                in: Object.values(TEAM_CODES)
+            }
+        },
+        select: {
+            id: true,
+            code: true,
+            name: true
+        }
+    });
+
+    const teamIds: Record<string, string> = {};
+
+    teams.forEach(team => {
+        teamIds[team.code] = team.id;
+        console.log(`✅ ${team.name} (${team.code}): ${team.id}`);
+    });
+
+    // Verificar se todos os times foram encontrados
+    const missingCodes = Object.values(TEAM_CODES).filter(code => !teamIds[code]);
+    if (missingCodes.length > 0) {
+        console.error(`❌ Times não encontrados: ${missingCodes.join(', ')}`);
+        throw new Error(`Times com códigos ${missingCodes.join(', ')} não foram encontrados na base`);
+    }
+
+    console.log(`✅ Todos os ${teams.length} times encontrados!`);
+    return teamIds;
+}
 
 interface MatchWithResult {
     round: number;
@@ -200,49 +237,59 @@ const ALL_MATCHES: MatchWithResult[] = [
         ended: true
     },
 
-    // RODADA 4 - FUTURAS (ainda não aconteceram)
+    // RODADA 4 - FINALIZADAS (já aconteceram)
     {
         round: 4,
         homeTeamId: 163, // Nyvelados FC
         awayTeamId: 167, // Capim FC
         date: "2025-10-27T20:00:00.000Z",
-        status: "DRAFT",
-        ended: false
+        status: "FINISHED",
+        homeScore: 3,
+        awayScore: 4,
+        ended: true
     },
     {
         round: 4,
         homeTeamId: 161, // Dendele FC
         awayTeamId: 164, // Funkbol Clube
         date: "2025-10-27T21:00:00.000Z",
-        status: "DRAFT",
-        ended: false
+        status: "FINISHED",
+        homeScore: 4,
+        awayScore: 4, // Empate resolvido nos pênaltis
+        ended: true
     },
     {
         round: 4,
         homeTeamId: 50,  // Furia FC
         awayTeamId: 166, // FC Real Elite
         date: "2025-10-27T22:00:00.000Z",
-        status: "DRAFT",
-        ended: false
+        status: "FINISHED",
+        homeScore: 2,
+        awayScore: 2, // Empate resolvido nos pênaltis
+        ended: true
     },
     {
         round: 4,
         homeTeamId: 168, // Desimpedidos
         awayTeamId: 49,  // G3X FC
         date: "2025-10-27T23:00:00.000Z",
-        status: "DRAFT",
-        ended: false
+        status: "FINISHED",
+        homeScore: 6,
+        awayScore: 9,
+        ended: true
     },
     {
         round: 4,
         homeTeamId: 162, // LOUD SC
         awayTeamId: 160, // Fluxo FC
         date: "2025-10-28T00:00:00.000Z",
-        status: "DRAFT",
-        ended: false
+        status: "FINISHED",
+        homeScore: 4,
+        awayScore: 3,
+        ended: true
     },
 
-    // RODADA 5 - FUTURAS
+    // RODADA 5 
     {
         round: 5,
         homeTeamId: 50,  // Furia FC
@@ -288,7 +335,10 @@ const ALL_MATCHES: MatchWithResult[] = [
 async function resetAndCreateMatchesWithResults() {
     console.log("🏆 Resetando e criando partidas com resultados...");
 
-    // 1. Limpar todas as partidas da região BR
+    // 1. Buscar IDs dos times dinamicamente
+    const teamIds = await getTeamIds();
+
+    // 2. Limpar todas as partidas da região BR
     console.log("🗑️  Limpando partidas existentes...");
 
     // Primeiro, remover guesses
@@ -323,29 +373,27 @@ async function resetAndCreateMatchesWithResults() {
         where: {
             region: "BR"
         }
-    }); console.log("✅ Partidas antigas removidas");
-
-    // 2. Verificar se todos os times existem
-    const teamIds = Object.values(TEAM_IDS);
-    const existingTeams = await prisma.team.findMany({
-        where: { id: { in: teamIds } },
-        select: { id: true, name: true, code: true }
     });
-
-    if (existingTeams.length !== teamIds.length) {
-        console.error("❌ Nem todos os times foram encontrados!");
-        process.exit(1);
-    }
+    console.log("✅ Partidas antigas removidas");
 
     // 3. Criar todas as partidas
     let createdCount = 0;
 
     for (const matchData of ALL_MATCHES) {
-        const homeTeamId = ID_MAPPING[matchData.homeTeamId];
-        const awayTeamId = ID_MAPPING[matchData.awayTeamId];
+        // Buscar os códigos dos times e depois os IDs
+        const homeTeamCode = CODE_MAPPING[matchData.homeTeamId];
+        const awayTeamCode = CODE_MAPPING[matchData.awayTeamId];
+
+        if (!homeTeamCode || !awayTeamCode) {
+            console.error(`❌ Código do time não encontrado: ${matchData.homeTeamId} vs ${matchData.awayTeamId}`);
+            continue;
+        }
+
+        const homeTeamId = teamIds[homeTeamCode];
+        const awayTeamId = teamIds[awayTeamCode];
 
         if (!homeTeamId || !awayTeamId) {
-            console.error(`❌ Time não encontrado: ${matchData.homeTeamId} vs ${matchData.awayTeamId}`);
+            console.error(`❌ ID do time não encontrado: ${homeTeamCode} vs ${awayTeamCode}`);
             continue;
         }
 
