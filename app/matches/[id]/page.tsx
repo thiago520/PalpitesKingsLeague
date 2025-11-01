@@ -10,12 +10,12 @@ type Match = {
   id: string;
   round: number;
   startsAt: string;
-  status: "DRAFT" | "OPEN" | "LOCKED" | "FINISHED"; // status global (apenas FINISHED é relevante aqui)
+  status: "DRAFT" | "OPEN" | "LOCKED" | "FINISHED";
   home: { name: string; code?: string };
   away: { name: string; code?: string };
   homeBadgeFile?: string | null;
   awayBadgeFile?: string | null;
-  myCapture?: MyCapture | null; // estado da captura para o streamer logado
+  myCapture?: MyCapture | null;
 };
 
 type Guess = {
@@ -23,7 +23,7 @@ type Guess = {
   twitchDisplay: string;
   goalsHome: number;
   goalsAway: number;
-  firstIsHome?: boolean; // ordem digitada (se faltou, assume home primeiro)
+  firstIsHome?: boolean;
 };
 
 const fetcher = (url: string) =>
@@ -81,7 +81,6 @@ function Crest({ file, alt }: { file?: string | null; alt: string }) {
   );
 }
 
-/** Escudinho pequeno para a lista de palpites */
 function CrestMini({
   file,
   alt,
@@ -113,6 +112,36 @@ function ExampleChip({ text }: { text: string }) {
     <code className="font-mono text-[11px] rounded bg-zinc-800/60 border border-zinc-700 px-1 py-0.5">
       {text}
     </code>
+  );
+}
+
+/** Linha com rótulo, percentual à direita e barra animada */
+function PartialRow({
+  left,
+  pct,
+}: {
+  left: React.ReactNode;
+  pct: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-amber-300 font-semibold">
+        <div className="flex items-center gap-2 text-zinc-200">{left}</div>
+        <div className="tabular-nums text-amber-300">{pct}%</div>
+      </div>
+
+      {/* Barra de progresso animada */}
+      <div className="h-3 w-full rounded-full bg-amber-400/20 overflow-hidden border border-amber-400/30">
+        <div
+          className="h-full bg-amber-400 rounded-full transition-all duration-700 ease-out"
+          style={{ width: `${pct}%` }}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          role="progressbar"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -169,16 +198,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
     return <main className="p-6 max-w-5xl mx-auto">Carregando…</main>;
   }
 
-  // Depois do guard acima, match está definido:
   const m = match as Match;
-
-  // Status efetivo na UI por streamer:
-  // - Se a partida acabou globalmente, sempre mostra FINISHED.
-  // - Caso contrário, usa o status por streamer (myCapture) quando existir; se não, mostra DRAFT.
-  const effectiveStatus: Match["status"] =
-    m.status === "FINISHED" ? "FINISHED" : m.myCapture?.status ?? "DRAFT";
-
-  const isOpenForMe = m.myCapture?.status === "OPEN";
 
   const nameExample = `${m.home.name} 3 x 2 ${m.away.name}`;
   const codeExample =
@@ -187,6 +207,22 @@ export default function MatchPage({ params }: { params: { id: string } }) {
       : null;
 
   const channelLogin = (m.myCapture?.channelLogin || "").toLowerCase();
+
+  // === Parciais (cálculo) ===
+  const total = (guesses ?? []).length;
+  let homeWins = 0,
+    draws = 0,
+    awayWins = 0;
+
+  for (const g of guesses ?? []) {
+    if (g.goalsHome > g.goalsAway) homeWins++;
+    else if (g.goalsHome < g.goalsAway) awayWins++;
+    else draws++;
+  }
+  const pct = (n: number) => (total > 0 ? Math.round((n * 100) / total) : 0);
+  const pHome = pct(homeWins);
+  const pDraw = pct(draws);
+  const pAway = pct(awayWins);
 
   return (
     <main className="min-h-screen bg-[#0b0b0b] text-zinc-100">
@@ -242,21 +278,18 @@ export default function MatchPage({ params }: { params: { id: string } }) {
       </header>
 
       <section className="mx-auto max-w-5xl px-4 py-6 space-y-6">
-        {/* Card da partida */}
+        {/* === Card da partida (inalterado) === */}
         <div className="rounded-2xl border border-amber-400/20 bg-zinc-900/60 p-6 shadow-[0_0_0_1px_rgba(255,196,28,0.08),0_18px_50px_-20px_rgba(0,0,0,.8)]">
-          {/* linha status + banner de captura */}
           <div className="flex items-center justify-between gap-3">
-            <StatusBadge status={effectiveStatus} />
-            {isOpenForMe && m.myCapture?.channelLogin && (
+            <StatusBadge status={m.status === "FINISHED" ? "FINISHED" : (m.myCapture?.status ?? "DRAFT")} />
+            {m.myCapture?.status === "OPEN" && m.myCapture?.channelLogin && (
               <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/40 bg-emerald-900/20 text-emerald-200 px-3 py-1 text-xs font-semibold">
                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Capturando em{" "}
-                <strong className="ml-1">#{m.myCapture.channelLogin}</strong>
+                Capturando em <strong className="ml-1">#{m.myCapture.channelLogin}</strong>
               </span>
             )}
           </div>
 
-          {/* escudos + instruções */}
           <div className="mt-3 flex items-start justify-between">
             {/* HOME */}
             <div className="flex flex-col items-center gap-2 w-1/3">
@@ -265,7 +298,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
               <div className="text-[11px] text-zinc-400 text-center leading-4">
                 No chat, digite:
                 <div className="mt-1">
-                  <ExampleChip text={nameExample} />
+                  <ExampleChip text={`${m.home.name} 3 x 2 ${m.away.name}`} />
                 </div>
                 {codeExample && (
                   <div className="mt-1">
@@ -287,7 +320,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
               <div className="text-[11px] text-zinc-400 text-center leading-4">
                 No chat, digite:
                 <div className="mt-1">
-                  <ExampleChip text={nameExample} />
+                  <ExampleChip text={`${m.home.name} 3 x 2 ${m.away.name}`} />
                 </div>
                 {codeExample && (
                   <div className="mt-1">
@@ -299,14 +332,12 @@ export default function MatchPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* data/hora */}
           <div className="mt-4 text-center text-sm text-zinc-300 space-y-1">
             <div>
               {formatDate(m.startsAt)} às {formatTime(m.startsAt)}
             </div>
           </div>
 
-          {/* botão toggle */}
           <div className="mt-4 flex justify-center">
             {m.status === "FINISHED" ? (
               <span className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-4 py-2 text-sm text-zinc-300">
@@ -314,20 +345,20 @@ export default function MatchPage({ params }: { params: { id: string } }) {
               </span>
             ) : (
               <button
-                onClick={isOpenForMe ? stopCapture : startCapture}
+                onClick={m.myCapture?.status === "OPEN" ? stopCapture : startCapture}
                 disabled={busy}
                 className={[
                   "inline-flex items-center gap-2 rounded-xl font-semibold px-4 py-2 active:translate-y-px transition disabled:opacity-70",
-                  isOpenForMe
+                  m.myCapture?.status === "OPEN"
                     ? "bg-red-500 text-white hover:bg-red-600"
                     : "bg-amber-400 text-black hover:bg-amber-300",
                 ].join(" ")}
               >
                 {busy
-                  ? isOpenForMe
+                  ? m.myCapture?.status === "OPEN"
                     ? "Parando..."
                     : "Iniciando..."
-                  : isOpenForMe
+                  : m.myCapture?.status === "OPEN"
                   ? "Parar Captura"
                   : "Iniciar Palpites"}
               </button>
@@ -335,7 +366,60 @@ export default function MatchPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Palpites do Chat */}
+        {/* === NOVO CARD: Parciais dos Palpites (apenas barras animadas) === */}
+        <section className="rounded-2xl border border-amber-400/20 bg-zinc-900/60 p-6 shadow-[0_0_0_1px_rgba(255,196,28,0.08),0_18px_50px_-20px_rgba(0,0,0,.8)]">
+          <h3 className="text-center text-amber-300 text-xl font-extrabold mb-6">
+            Parciais dos Palpites
+          </h3>
+
+          {total === 0 ? (
+            <div className="text-zinc-300">
+              Ainda não há palpites. Assim que o chat enviar, as parciais
+              aparecem aqui.
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <PartialRow
+                left={
+                  <>
+                    <CrestMini file={m.homeBadgeFile} alt={m.home.name} />
+                    <span className="font-medium">{m.home.name}</span>
+                  </>
+                }
+                pct={pHome}
+              />
+
+              <PartialRow
+                left={
+                  <>
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-zinc-900 border border-zinc-800 text-sm">
+                      🤝
+                    </span>
+                    <span className="font-medium">Empate</span>
+                  </>
+                }
+                pct={pDraw}
+              />
+
+              <PartialRow
+                left={
+                  <>
+                    <CrestMini file={m.awayBadgeFile} alt={m.away.name} />
+                    <span className="font-medium">{m.away.name}</span>
+                  </>
+                }
+                pct={pAway}
+              />
+            </div>
+          )}
+
+          <div className="mt-4 text-right text-xs text-zinc-400">
+            {total} {total === 1 ? "palpite" : "palpites"} contabilizados
+            (atualiza a cada 2s)
+          </div>
+        </section>
+
+        {/* === Palpites do Chat === */}
         <div className="space-y-3">
           <h2 className="text-xl font-semibold">Palpites do Chat</h2>
 
@@ -351,7 +435,6 @@ export default function MatchPage({ params }: { params: { id: string } }) {
 
           <ul className="space-y-3">
             {(guesses ?? []).map((g) => {
-              // default para dados antigos: assume "home primeiro"
               const homeFirst = g.firstIsHome !== false;
 
               const leftCrest = homeFirst ? (
