@@ -74,12 +74,12 @@ const fetcher = (url: string) =>
     return r.json();
   });
 
-/** ====== Helpers de formatação iguais ao /matches ====== */
+/** ====== Helpers de formatação ====== */
 function formatDate(s: string) {
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
   if (m) {
     const [, y, mo, d] = m;
-    return `${d}/${mo}/${y}`; // dd/MM/yyyy
+    return `${d}/${mo}/${y}`;
   }
   try {
     const d = new Date(s);
@@ -107,7 +107,7 @@ function formatTime(s: string) {
   }
 }
 
-/** ====== Ícones iguais ao /matches ====== */
+/** ====== Ícones ====== */
 function CalendarIcon() {
   return (
     <svg
@@ -139,19 +139,47 @@ function Crest({ file, alt }: { file?: string | null; alt: string }) {
   const src = file ? `/img/${file}` : "/img/placeholder-ball.png";
   return (
     <div className="h-10 w-10 md:h-12 md:w-12 rounded-full grid place-items-center bg-zinc-800/60 border border-zinc-700 overflow-hidden">
-      {/* usar img simples aqui para evitar domain config */}
-      <img
-        src={src}
-        alt={alt}
-        width={48}
-        height={48}
-        className="object-contain"
-      />
+      <img src={src} alt={alt} width={48} height={48} className="object-contain" />
     </div>
   );
 }
 
-/** ====== Card do ADMIN no mesmo estilo do /matches, com inputs e salvar→editar ====== */
+/** ====== Botões de Tabs ====== */
+function TabsRow<T extends string | number>({
+  items,
+  current,
+  onChange,
+  renderLabel,
+}: {
+  items: T[];
+  current: T;
+  onChange: (v: T) => void;
+  renderLabel?: (v: T) => string | number;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => {
+        const active = item === current;
+        return (
+          <button
+            key={`${item}`}
+            onClick={() => onChange(item)}
+            className={[
+              "rounded-full px-4 py-2 text-sm font-semibold border transition",
+              active
+                ? "bg-amber-400 text-black border-amber-400"
+                : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700",
+            ].join(" ")}
+          >
+            {renderLabel ? renderLabel(item) : (item as any)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** ====== Card admin com salvar→editar persistente ====== */
 function AdminMatchCard({
   m,
   homeBadge,
@@ -167,36 +195,43 @@ function AdminMatchCard({
 }) {
   const [gh, setGh] = useState<number>(m.result?.goalsHome ?? 0);
   const [ga, setGa] = useState<number>(m.result?.goalsAway ?? 0);
+  const hasResult = !!m.result;
+
+  // Regra solicitada: se já tem resultado, botão inicia como "Editar" (editing=false).
+  const [editing, setEditing] = useState<boolean>(!hasResult);
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState(true); // começa editável; após salvar vira "Editar"
+
+  // Se o resultado mudar por refresh/props novas, sincroniza
+  useEffect(() => {
+    setGh(m.result?.goalsHome ?? 0);
+    setGa(m.result?.goalsAway ?? 0);
+    setEditing(!Boolean(m.result)); // após salvar e recarregar, vira "Editar"
+  }, [m.id, m.result?.goalsHome, m.result?.goalsAway]);
 
   async function handleSaveOrEdit() {
     if (!editing) {
+      // Clicou em "Editar" → entra em modo edição
       setEditing(true);
       return;
     }
+    // Está em modo edição → "Salvar"
     setBusy(true);
     await onSave(m.id, gh, ga);
     setBusy(false);
-    setEditing(false);
+    setEditing(false); // imediatamente vira "Editar"
   }
-
-  const hasResult = m.result !== null;
 
   return (
     <div
       className={[
         "rounded-2xl border p-5 shadow-[0_0_0_1px_rgba(255,196,28,0.08),0_18px_50px_-20px_rgba(0,0,0,.8)]",
-        hasResult
-          ? "border-green-400/20 bg-green-900/20"
-          : "border-amber-400/20 bg-zinc-900/60",
+        hasResult ? "border-green-400/20 bg-green-900/20" : "border-amber-400/20 bg-zinc-900/60",
       ].join(" ")}
     >
-      {/* Top bar com região + horário e botão remover */}
+      {/* Top bar com data/hora e remover */}
       <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
         <span>
-          {REGION_LABEL[m.region]} • {formatDate(m.startsAt)} •{" "}
-          {formatTime(m.startsAt)}
+          {formatDate(m.startsAt)} • {formatTime(m.startsAt)} • {REGION_LABEL[m.region]}
         </span>
         <button
           onClick={onRemove}
@@ -207,37 +242,21 @@ function AdminMatchCard({
         </button>
       </div>
 
-      {/* Linha principal: escudos e VS/placar (visual) */}
+      {/* Linha principal: escudos e VS/placar visual */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col items-center gap-2 w-1/3">
           <Crest file={homeBadge} alt={m.home.name} />
-          <div className="text-sm font-semibold text-zinc-100 text-center">
-            {m.home.name}
-          </div>
+          <div className="text-sm font-semibold text-zinc-100 text-center">{m.home.name}</div>
         </div>
 
         <div className="w-1/3 text-center">
           {hasResult ? (
             <div className="font-extrabold text-xl">
-              <span
-                className={[
-                  "text-2xl",
-                  m.result!.goalsHome > m.result!.goalsAway
-                    ? "text-green-400"
-                    : "text-zinc-300",
-                ].join(" ")}
-              >
+              <span className={["text-2xl", (m.result!.goalsHome > m.result!.goalsAway) ? "text-green-400" : "text-zinc-300"].join(" ")}>
                 {m.result!.goalsHome}
               </span>
               <span className="text-zinc-500 mx-2">x</span>
-              <span
-                className={[
-                  "text-2xl",
-                  m.result!.goalsAway > m.result!.goalsHome
-                    ? "text-green-400"
-                    : "text-zinc-300",
-                ].join(" ")}
-              >
+              <span className={["text-2xl", (m.result!.goalsAway > m.result!.goalsHome) ? "text-green-400" : "text-zinc-300"].join(" ")}>
                 {m.result!.goalsAway}
               </span>
             </div>
@@ -248,13 +267,11 @@ function AdminMatchCard({
 
         <div className="flex flex-col items-center gap-2 w-1/3">
           <Crest file={awayBadge} alt={m.away.name} />
-          <div className="text-sm font-semibold text-zinc-100 text-center">
-            {m.away.name}
-          </div>
+          <div className="text-sm font-semibold text-zinc-100 text-center">{m.away.name}</div>
         </div>
       </div>
 
-      {/* Rodapé: inputs numéricos + botões */}
+      {/* Inputs + botão */}
       <div className="mt-4">
         <div className="flex items-center justify-center gap-3">
           <input
@@ -282,9 +299,7 @@ function AdminMatchCard({
             disabled={busy}
             className={[
               "flex-1 rounded-lg px-3 py-2 font-semibold transition",
-              editing
-                ? "bg-emerald-600/90 text-white hover:bg-emerald-600"
-                : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-600",
+              editing ? "bg-emerald-600/90 text-white hover:bg-emerald-600" : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-600",
             ].join(" ")}
           >
             {busy ? "Salvando..." : editing ? "Salvar" : "Editar"}
@@ -299,9 +314,11 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
   const router = useRouter();
 
   /** ====== Streamers (inalterado) ====== */
-  const { data: streamersFetch, isLoading: loadingStreamers } = useSWR<
-    Streamer[]
-  >("/api/admin/streamers", fetcher, { refreshInterval: 15000 });
+  const { data: streamersFetch, isLoading: loadingStreamers } = useSWR<Streamer[]>(
+    "/api/admin/streamers",
+    fetcher,
+    { refreshInterval: 15000 }
+  );
 
   const [allStreamers, setAllStreamers] = useState<Streamer[]>([]);
   useEffect(() => {
@@ -357,8 +374,8 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
     FR: ["FR"],
     DE: ["DE"],
     MENA: ["MENA"],
-    QL_ES: ["ES"], // Queens ES usa times da Espanha
-    QL_MX: ["MX"], // Queens MX usa times do México
+    QL_ES: ["ES"],
+    QL_MX: ["MX"],
   };
 
   const teamsByRegion = useMemo(() => {
@@ -391,8 +408,7 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
           awayId,
           round,
           region,
-          // 🔴 Envia o valor cru do input (sem toISOString) — backend faz a conversão wallclock
-          startsAt,
+          startsAt, // valor cru; backend converte
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -433,29 +449,53 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
     router.refresh();
   }
 
-  /** ====== Agrupar por RODADA (desc) e dentro por REGIÃO ====== */
-  const grouped = useMemo(() => {
-    // round -> region -> matches[]
-    const map = new Map<number, Map<Region, Match[]>>();
-    for (const m of initialMatches) {
-      const rmap = map.get(m.round) ?? new Map<Region, Match[]>();
-      const arr = rmap.get(m.region) ?? [];
-      arr.push(m);
-      rmap.set(m.region, arr);
-      map.set(m.round, rmap);
-    }
-
-    // rounds desc
-    const roundsDesc = Array.from(map.entries()).sort(([a], [b]) => b - a);
-
-    // normalize inner order of regions using REGION_ORDER
-    return roundsDesc.map(([round, rmap]) => {
-      const regions = REGION_ORDER.filter((reg) => rmap.has(reg)).map(
-        (reg) => [reg, rmap.get(reg)!] as [Region, Match[]]
-      );
-      return { round, regions };
-    });
+  /** ====== Filtros (Região + Rodada) ====== */
+  // regiões disponíveis (com base nas partidas existentes)
+  const regionsWithMatches = useMemo(() => {
+    const set = new Set<Region>();
+    for (const m of initialMatches) set.add(m.region);
+    return REGION_ORDER.filter((r) => set.has(r));
   }, [initialMatches]);
+
+  // região selecionada (default: primeira disponível ou BR)
+  const [filterRegion, setFilterRegion] = useState<Region>(
+    regionsWithMatches[0] ?? "BR"
+  );
+  useEffect(() => {
+    // se o conjunto de regiões mudar e a atual não existir mais, reajusta
+    if (!regionsWithMatches.includes(filterRegion) && regionsWithMatches.length) {
+      setFilterRegion(regionsWithMatches[0]);
+    }
+  }, [regionsWithMatches, filterRegion]);
+
+  // rounds disponíveis conforme a região selecionada
+  const roundsForRegion = useMemo(() => {
+    const set = new Set<number>();
+    for (const m of initialMatches) {
+      if (m.region === filterRegion) set.add(m.round);
+    }
+    return Array.from(set.values()).sort((a, b) => a - b);
+  }, [initialMatches, filterRegion]);
+
+  // rodada selecionada (default: primeira da lista)
+  const [filterRound, setFilterRound] = useState<number>(
+    roundsForRegion[0] ?? 1
+  );
+  useEffect(() => {
+    // quando trocar de região, atualiza rodada para a primeira disponível
+    if (!roundsForRegion.includes(filterRound) && roundsForRegion.length) {
+      setFilterRound(roundsForRegion[0]);
+    }
+  }, [roundsForRegion, filterRound]);
+
+  // partidas filtradas
+  const filtered = useMemo(
+    () =>
+      initialMatches.filter(
+        (m) => m.region === filterRegion && m.round === filterRound
+      ),
+    [initialMatches, filterRegion, filterRound]
+  );
 
   return (
     <main className="min-h-screen bg-[#0b0b0b] text-zinc-100">
@@ -645,55 +685,59 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
           </div>
         </div>
 
-        {/* Listagem agrupada por rodada (desc) e região */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold">Partidas Cadastradas</h3>
+        {/* === NOVO: Tabs de Região e Rodada (filtro) === */}
+        <div className="space-y-3">
+          <div className="text-sm text-zinc-400">Filtrar Partidas</div>
 
-          {grouped.map(({ round, regions }) => (
-            <section
-              key={round}
-              className="rounded-2xl border border-zinc-800 bg-zinc-950/50 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-                <h4 className="text-xl font-bold">
-                  Rodada <span className="text-amber-300">{round}</span>
-                </h4>
-                <span className="text-xs uppercase tracking-wider text-zinc-400">
-                  {regions.reduce((acc, [, list]) => acc + list.length, 0)}{" "}
-                  partidas
-                </span>
-              </div>
+          {/* Tabs Região */}
+          <TabsRow<Region>
+            items={regionsWithMatches}
+            current={filterRegion}
+            onChange={setFilterRegion}
+            renderLabel={(r) => REGION_LABEL[r as Region]}
+          />
 
-              <div className="p-4 space-y-5">
-                {regions.map(([reg, list]) => (
-                  <div key={reg}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-semibold text-zinc-300">
-                        {REGION_LABEL[reg]}
-                      </div>
-                      <div className="text-xs text-zinc-500">
-                        {list.length}{" "}
-                        {list.length === 1 ? "partida" : "partidas"}
-                      </div>
-                    </div>
+          {/* Tabs Rodada (dependem da região escolhida) */}
+          <div className="mt-2">
+            <TabsRow<number>
+              items={roundsForRegion}
+              current={filterRound}
+              onChange={setFilterRound}
+              renderLabel={(n) => `Rodada ${n}`}
+            />
+          </div>
+        </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {list.map((m) => (
-                        <AdminMatchCard
-                          key={m.id}
-                          m={m}
-                          homeBadge={teamById.get(m.home.id)?.badgeFile ?? null}
-                          awayBadge={teamById.get(m.away.id)?.badgeFile ?? null}
-                          onRemove={() => removeMatch(m.id)}
-                          onSave={saveResult}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
+        {/* Lista filtrada com mesmo layout de cards */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xl font-semibold">
+              {REGION_LABEL[filterRegion]} • Rodada{" "}
+              <span className="text-amber-300">{filterRound}</span>
+            </h3>
+            <span className="text-xs text-zinc-400">
+              {filtered.length} {filtered.length === 1 ? "partida" : "partidas"}
+            </span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-zinc-300">
+              Nenhuma partida cadastrada nesse filtro.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((m) => (
+                <AdminMatchCard
+                  key={m.id}
+                  m={m}
+                  homeBadge={teamById.get(m.home.id)?.badgeFile ?? null}
+                  awayBadge={teamById.get(m.away.id)?.badgeFile ?? null}
+                  onRemove={() => removeMatch(m.id)}
+                  onSave={saveResult}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
