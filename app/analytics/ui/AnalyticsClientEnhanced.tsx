@@ -104,17 +104,18 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
     const [selectedRound, setSelectedRound] = useState<number>(1);
+    const [hasUserSelectedRound, setHasUserSelectedRound] = useState(false);
 
-    // Selecionar automaticamente a rodada mais alta quando os dados são atualizados
+    // Selecionar automaticamente a rodada mais alta APENAS no carregamento inicial
     useEffect(() => {
-        if (data && data.currentRoundMatches && Object.keys(data.currentRoundMatches).length > 0) {
+        if (!hasUserSelectedRound && data && data.currentRoundMatches && Object.keys(data.currentRoundMatches).length > 0) {
             const rounds = Object.values(data.currentRoundMatches).map(r => r.round);
             if (rounds.length > 0) {
                 const highestRound = Math.max(...rounds);
                 setSelectedRound(highestRound);
             }
         }
-    }, [data.currentRoundMatches]);
+    }, [data.currentRoundMatches, hasUserSelectedRound]);
 
     // Função para buscar dados atualizados
     const fetchLatestData = useCallback(async () => {
@@ -521,7 +522,10 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
                                     .map(([key, roundData]) => (
                                         <button
                                             key={key}
-                                            onClick={() => setSelectedRound(roundData.round)}
+                                            onClick={() => {
+                                                setSelectedRound(roundData.round);
+                                                setHasUserSelectedRound(true);
+                                            }}
                                             className={`px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2 ${selectedRound === roundData.round
                                                 ? 'bg-amber-400 text-black'
                                                 : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
