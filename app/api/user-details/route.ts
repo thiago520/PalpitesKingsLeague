@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
                 }
             }
         },
-        orderBy: { createdAt: "desc" }
+        orderBy: [
+            { match: { status: "desc" } }, // FINISHED primeiro, depois outros status
+            { match: { startsAt: "desc" } } // Mais recentes primeiro
+        ]
     });
 
     // Organizar os dados para mostrar de onde vêm os pontos
