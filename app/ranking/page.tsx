@@ -1,6 +1,7 @@
 // app/ranking/page.tsx
 import Link from "next/link";
 import { headers } from "next/headers"; // <-- importe isso
+import RankingTable from "./RankingTable";
 
 type Row = {
   twitchUserId: string;
@@ -133,66 +134,8 @@ export default async function RankingPage({
           </div>
         )}
 
-        {/* card de regras (igual ao seu) */}
-
-        <div className="rounded-2xl border border-amber-400/25 overflow-hidden">
-          <div className="bg-zinc-950/60 px-5 py-4 border-b border-amber-400/20">
-            <h2 className="text-xl font-semibold">Classificação Geral</h2>
-          </div>
-
-          {!hasRows ? (
-            <div className="p-6 text-zinc-400">
-              {channel
-                ? `Ainda não há pontos no ranking para @${channel}.`
-                : `Informe um canal para ver o ranking.`}
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-800">
-              <div className="grid grid-cols-[80px_1fr_120px_120px] px-5 py-3 text-sm text-zinc-400">
-                <div>Posição</div>
-                <div>Participante</div>
-                <div className="text-right">Acertos</div>
-                <div className="text-right">Pontos</div>
-              </div>
-
-              {rows.map((r, i) => {
-                const pos = i + 1;
-                const isOdd = i % 2 === 0;
-                const top3 = pos <= 3;
-                return (
-                  <div
-                    key={r.twitchUserId}
-                    className={[
-                      "grid grid-cols-[80px_1fr_120px_120px] items-center px-5 py-3",
-                      isOdd ? "bg-zinc-950/40" : "bg-zinc-950/20",
-                      top3 ? "bg-amber-400/10" : "",
-                      "hover:bg-zinc-900/60 transition",
-                    ].join(" ")}
-                  >
-                    <div className="font-semibold">
-                      <Medal pos={pos} />
-                      <span className="tabular-nums">{pos}º</span>
-                    </div>
-                    <div className="truncate">
-                      <span className="font-medium">
-                        {r.twitchDisplay || r.twitchLogin || "—"}
-                      </span>
-                      {r.twitchLogin && (
-                        <span className="ml-2 text-xs text-zinc-500">
-                          @{r.twitchLogin}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right tabular-nums">{r.hits}</div>
-                    <div className="text-right tabular-nums font-semibold text-amber-300">
-                      {r.points}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Tabela de Ranking Interativa */}
+        <RankingTable rows={rows} channel={channel} />
       </section>
     </main>
   );
