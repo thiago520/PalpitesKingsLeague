@@ -225,10 +225,7 @@ export default function AnalyticsClientEnhanced({ data: initialData }: Props) {
               {lastUpdate.toLocaleTimeString("pt-BR")}
             </span>
           </div>
-        </div>
-        <p className="text-green-400 text-sm">
-          🔄 Atualização
-        </p>
+        </div>        
       </div>
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-amber-400/20">
