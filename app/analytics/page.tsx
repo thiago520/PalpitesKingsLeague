@@ -1,20 +1,29 @@
-// app/analytics/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { getSession } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/src/lib/db";
+import { cookies } from "next/headers";
 import AnalyticsClientEnhanced from "./ui/AnalyticsClientEnhanced";
 
-async function getAnalyticsData() {
+async function getAnalyticsData(channel?: string) {
   const base = process.env.APP_URL ?? "http://localhost:3000";
+  const qs = channel ? `?channel=${encodeURIComponent(channel)}` : "";
+
   try {
-    const res = await fetch(`${base}/api/analytics`, { cache: "no-store" });
+    const cookieStore = cookies();
+    const res = await fetch(`${base}/api/analytics${qs}`, {
+      cache: "no-store",
+      headers: {
+       
+        cookie: cookieStore.toString(),
+      },      
+    });
+
     if (!res.ok) throw new Error("Falha ao carregar dados de analytics");
     return res.json();
   } catch (error) {
     console.error("Error fetching analytics data:", error);
-    // Dados vazios em caso de erro
+    
     return {
       outcomeDistribution: [],
       accuracyRate: [],
@@ -25,6 +34,11 @@ async function getAnalyticsData() {
       topScores: [],
       firstGuessers: [],
       scoresByPopularity: [],
+      betDistribution: [],
+      currentRoundMatches: {},
+      recentGuesses: [],
+      totalGuesses: 0,
+      lastUpdated: ""
     };
   }
 }
@@ -39,13 +53,14 @@ export default async function AnalyticsPage({
 
   const channel = (searchParams?.channel || "").replace(/^@/, "").toLowerCase();
 
-  // Buscar dados reais do banco de dados
-  const initialData = await getAnalyticsData(); // Mostrar a imagem apenas para o login "andreachinii"
+  // Busca inicial no SSR (agora com cookies)
+  const initialData = await getAnalyticsData(channel);
+
+  // Mostrar a imagem apenas para o login "andreachinii"
   const showChini = (session.user.login || "").toLowerCase() === "andreachinii";
 
   return (
     <main className="relative min-h-screen bg-[#0b0b0b] text-zinc-100">
-      {/* Imagem decorativa à esquerda – só para @andreachinii */}
       {showChini && (
         <div
           aria-hidden
@@ -62,7 +77,6 @@ export default async function AnalyticsPage({
         </div>
       )}
 
-      {/* Header */}
       <header className="sticky top-0 z-20 border-b border-amber-400/20 bg-black/60 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold">
