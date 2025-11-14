@@ -266,9 +266,9 @@ const TEAMS_BR: TeamInput[] = [
     badgeFile: "dendele.png",
   },
   {
-    code: "DSM",
+    code: "DEC",
     name: "Desimpedidos",
-    aliases: ["Desimpedidos", "DSM"],
+    aliases: ["Desimpedidos", "DSM", "DEC"],
     badgeFile: "desimpedidos.png",
   },
   {
