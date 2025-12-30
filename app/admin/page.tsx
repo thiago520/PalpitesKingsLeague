@@ -4,11 +4,35 @@ import { getSession } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
 import AdminClient from "./ui/AdminClient";
 
-type Region = "ES" | "MX" | "IT" | "BR" | "FR" | "DE" | "MENA" | "QL_ES" | "QL_MX";
+type Region =
+  | "ES"
+  | "MX"
+  | "IT"
+  | "BR"
+  | "FR"
+  | "DE"
+  | "MENA"
+  | "KWC_NATIONS"
+  | "QL_ES"
+  | "QL_MX";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/");
+
+  const bot = await prisma.twitchBot.findUnique({
+    where: { key: "main" },
+    select: { login: true, accessTokenExp: true, scopes: true },
+  });
+
+  const botStatus = bot
+    ? {
+        authorized: true as const,
+        login: bot.login,
+        accessTokenExp: bot.accessTokenExp.toISOString(),
+        scopes: bot.scopes,
+      }
+    : ({ authorized: false as const } satisfies { authorized: false });
 
   // TIMES com region
   const teams = await prisma.team.findMany({
@@ -51,5 +75,11 @@ export default async function AdminPage() {
     badgeFile: (t as any).badgeFile ?? null,
   }));
 
-  return <AdminClient initialTeams={initialTeams} initialMatches={matches} />;
+  return (
+    <AdminClient
+      initialTeams={initialTeams}
+      initialMatches={matches}
+      botStatus={botStatus}
+    />
+  );
 }

@@ -5,7 +5,20 @@ import { z } from "zod";
 
 const BodySchema = z.object({
   round: z.number().int().min(1).optional(),
-  region: z.enum(["ES", "MX", "IT", "BR", "FR", "DE", "MENA","QL_ES","QL_MX"]).optional(),
+  region: z
+    .enum([
+      "ES",
+      "MX",
+      "IT",
+      "BR",
+      "FR",
+      "DE",
+      "MENA",
+      "KWC_NATIONS",
+      "QL_ES",
+      "QL_MX",
+    ])
+    .optional(),
   startsAt: z.string().optional(), // ISO string
   homeId: z.string().optional(),
   awayId: z.string().optional(),

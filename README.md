@@ -16,9 +16,25 @@
 2. `npm install`
 3. `docker-compose up -d db` (inicia PostgreSQL)
 4. `npx prisma migrate dev`
-5. `npx prisma db seed`
+5. `npx prisma db seed` (ou `npm run seed`)
 6. `npm run dev` (aplicação principal)
 7. `npm run worker:dev` (worker de chat - terminal separado)
+
+### Bot (opcional)
+Se você quiser que as mensagens do sistema e comandos (`!rank`, `!top5`) sejam enviados por uma conta de bot (ex.: `PalpitesKings`) em vez do streamer logado:
+
+```bash
+TWITCH_BOT_ENABLED="true"
+TWITCH_BOT_USERNAME="PalpitesKings"
+OAUTH_BOT_REDIRECT_URI="http://localhost:3000/api/auth/twitch/bot/callback"
+```
+
+Então, logado como admin no site, abra:
+- `/api/auth/twitch/bot/login` (vai redirecionar para o OAuth do Twitch)
+
+Após autorizar, o token/refresh do bot fica salvo no banco e o worker renova automaticamente.
+
+Sem `TWITCH_BOT_ENABLED=true`, o comportamento atual (Helix com token do streamer) é mantido.
 
 **📖 Guia detalhado:** [LOCAL-SETUP.md](LOCAL-SETUP.md)
 

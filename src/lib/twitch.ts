@@ -11,11 +11,20 @@ function assertEnv(name: string, value?: string) {
 const CLIENT_ID = assertEnv("TWITCH_CLIENT_ID", process.env.TWITCH_CLIENT_ID);
 const CLIENT_SECRET = assertEnv("TWITCH_CLIENT_SECRET", process.env.TWITCH_CLIENT_SECRET);
 
-export function twitchAuthorizeUrl({ state, scope }: { state: string; scope: string[] }) {
-  const redirectUri = assertEnv("OAUTH_REDIRECT_URI", process.env.OAUTH_REDIRECT_URI);
+export function twitchAuthorizeUrl({
+  state,
+  scope,
+  redirectUri,
+}: {
+  state: string;
+  scope: string[];
+  redirectUri?: string;
+}) {
+  const resolvedRedirectUri =
+    redirectUri ?? assertEnv("OAUTH_REDIRECT_URI", process.env.OAUTH_REDIRECT_URI);
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: redirectUri,
+    redirect_uri: resolvedRedirectUri,
     response_type: "code",
     scope: scope.join(" "),
     state,
@@ -23,14 +32,15 @@ export function twitchAuthorizeUrl({ state, scope }: { state: string; scope: str
   return `${TWITCH_AUTH_BASE}/authorize?${params.toString()}`;
 }
 
-export async function exchangeCodeForTokens(code: string) {
-  const redirectUri = assertEnv("OAUTH_REDIRECT_URI", process.env.OAUTH_REDIRECT_URI);
+export async function exchangeCodeForTokens(code: string, redirectUri?: string) {
+  const resolvedRedirectUri =
+    redirectUri ?? assertEnv("OAUTH_REDIRECT_URI", process.env.OAUTH_REDIRECT_URI);
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
     code,
     grant_type: "authorization_code",
-    redirect_uri: redirectUri,
+    redirect_uri: resolvedRedirectUri,
   });
   const res = await fetch(`${TWITCH_AUTH_BASE}/token`, {
     method: "POST",

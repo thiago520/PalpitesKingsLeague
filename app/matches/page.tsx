@@ -13,6 +13,7 @@ type Region =
   | "FR"
   | "DE"
   | "MENA"
+  | "KWC_NATIONS"
   | "QL_ES"
   | "QL_MX";
 
@@ -40,6 +41,7 @@ const REGION_LABELS: Record<Region, string> = {
   FR: "França",
   DE: "Alemanha",
   MENA: "MENA",
+  KWC_NATIONS: "KWC Nations",
   QL_ES: "QL Espanha",
   QL_MX: "QL México",
 };
@@ -60,6 +62,7 @@ function Tabs({ current }: { current: Region }) {
     "FR",
     "DE",
     "MENA",
+    "KWC_NATIONS",
     "QL_ES",
     "QL_MX",
   ];
@@ -315,6 +318,7 @@ export default async function MatchesPage({
     "FR",
     "DE",
     "MENA",
+    "KWC_NATIONS",
     "QL_ES",
     "QL_MX",
   ];

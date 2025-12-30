@@ -6,6 +6,7 @@ import tmi, { Client, ChatUserstate } from "tmi.js";
 import { prisma } from "../src/lib/db";
 import { SCORE_REGEX, normalizeName } from "../src/lib/utils";
 import { ensureValidUserAccess } from "../src/lib/twitch";
+import { ensureValidBotAccess } from "../src/lib/twitchBot";
 
 type MessageHandler = (channel: string, tags: ChatUserstate, message: string, self: boolean) => void;
 type HandlerMap = Map<string, MessageHandler>; // matchId -> handler
@@ -13,6 +14,108 @@ type HandlerMap = Map<string, MessageHandler>; // matchId -> handler
 const clients = new Map<string, Client>();      // streamerUserId -> tmi Client
 const handlers = new Map<string, HandlerMap>(); // streamerUserId -> (matchId -> fn)
 const globalHandlers = new Map<string, MessageHandler>(); // streamerUserId -> fn (comandos globais)
+
+// ===============================
+// Bot (mensagens via conta separada)
+// ===============================
+const BOT_ENABLED = /^(1|true|yes)$/i.test((process.env.TWITCH_BOT_ENABLED || "").trim());
+const BOT_USERNAME = (process.env.TWITCH_BOT_USERNAME || "").trim();
+const BOT_OAUTH_RAW = (process.env.TWITCH_BOT_OAUTH || "").trim();
+
+function isBotEnabled() {
+  // Habilita com flag + username. O token pode vir do env (rápido) ou do DB (produção).
+  return !!(BOT_ENABLED && BOT_USERNAME);
+}
+
+function toTmiOauthPassword(raw: string) {
+  // Aceita token no formato "oauth:xxxx" ou só "xxxx"
+  return raw.startsWith("oauth:") ? raw : `oauth:${raw}`;
+}
+
+async function getBotAccessToken(options?: { forceRefresh?: boolean }) {
+  // Opção rápida (sem refresh): token direto do env
+  if (BOT_OAUTH_RAW) return BOT_OAUTH_RAW;
+  // Produção: token armazenado no DB + refresh automático
+  return ensureValidBotAccess(options);
+}
+
+let botClient: Client | null = null;
+let botConnecting: Promise<Client> | null = null;
+const botJoined = new Set<string>(); // canal login (sem #)
+
+async function ensureBotClient(): Promise<Client> {
+  if (!isBotEnabled()) throw new Error("Bot desabilitado (TWITCH_BOT_ENABLED/TWITCH_BOT_USERNAME)");
+  if (botClient) return botClient;
+  if (botConnecting) return botConnecting;
+
+  botConnecting = (async () => {
+    const access1 = await getBotAccessToken();
+    const client = new tmi.Client({
+      options: { debug: false },
+      identity: {
+        username: BOT_USERNAME,
+        password: toTmiOauthPassword(access1),
+      },
+      channels: [],
+      connection: { secure: true, reconnect: true },
+    });
+
+    client.on("connected", (_addr, _port) => console.log(`[worker] BOT IRC connected as ${BOT_USERNAME}`));
+    client.on("join", (chan, username, self) => {
+      if (self) console.log(`[worker] BOT joined ${chan} as ${username}`);
+    });
+    client.on("notice", (channel, msgid, message) =>
+      console.warn(`[worker][bot][notice] ${channel} ${msgid ?? ""} ${message}`)
+    );
+
+    try {
+      await client.connect();
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      // Se estamos em modo DB (sem token no env), tenta um refresh forçado uma vez.
+      if (!BOT_OAUTH_RAW && /login authentication failed/i.test(msg)) {
+        console.warn("[worker] BOT auth failed, forcing refresh and retrying once...");
+        const access2 = await getBotAccessToken({ forceRefresh: true });
+        const retry = new tmi.Client({
+          options: { debug: false },
+          identity: {
+            username: BOT_USERNAME,
+            password: toTmiOauthPassword(access2),
+          },
+          channels: [],
+          connection: { secure: true, reconnect: true },
+        });
+        retry.on("connected", (_addr, _port) => console.log(`[worker] BOT IRC connected as ${BOT_USERNAME}`));
+        retry.on("join", (chan, username, self) => {
+          if (self) console.log(`[worker] BOT joined ${chan} as ${username}`);
+        });
+        retry.on("notice", (channel, msgid, message) =>
+          console.warn(`[worker][bot][notice] ${channel} ${msgid ?? ""} ${message}`)
+        );
+        await retry.connect();
+        botClient = retry;
+        return retry;
+      }
+      throw e;
+    }
+    botClient = client;
+    return client;
+  })().finally(() => {
+    botConnecting = null;
+  });
+
+  return botConnecting;
+}
+
+async function ensureBotJoinedChannel(channelLogin: string) {
+  const login = (channelLogin || "").replace(/^#/, "").toLowerCase().trim();
+  if (!login) return;
+  if (botJoined.has(login)) return;
+
+  const client = await ensureBotClient();
+  await client.join(`#${login}`);
+  botJoined.add(login);
+}
 
 const aliasCache = new Map<string, { at: number; values: string[] }>();
 const ALIAS_TTL_MS = 5 * 60 * 1000;
@@ -70,6 +173,34 @@ async function sendChatMessageHelix(streamerUserId: string, channelLogin: string
   } catch (e) {
     console.error("[helix.send] error:", e);
   }
+}
+
+async function sendChatMessage(streamerUserId: string, channelLogin: string, text: string) {
+  if (isBotEnabled()) {
+    const login = (channelLogin || "").replace(/^#/, "").toLowerCase().trim();
+    if (!login) return;
+    try {
+      if (!botJoined.has(login)) {
+        console.log(`[worker] BOT will join & speak in #${login}`);
+      }
+      await ensureBotJoinedChannel(login);
+      const client = await ensureBotClient();
+      await client.say(`#${login}`, text);
+      return;
+    } catch (e) {
+      console.warn(`[worker] BOT say failed in #${login}. Falling back to Helix:`, e);
+    }
+  }
+
+  // Observabilidade: ajuda a identificar por que a msg ainda sai como streamer
+  if (!BOT_ENABLED) {
+    console.log(`[worker] Bot desabilitado (TWITCH_BOT_ENABLED=false). Enviando via Helix (streamer).`);
+  } else if (!BOT_USERNAME) {
+    console.log(`[worker] Bot desabilitado (faltando TWITCH_BOT_USERNAME). Enviando via Helix (streamer).`);
+  }
+
+  // fallback: comportamento atual (mensagem via Helix usando token do streamer)
+  await sendChatMessageHelix(streamerUserId, channelLogin, text);
 }
 
 function getHandlerMap(userId: string): HandlerMap {
@@ -283,19 +414,19 @@ function attachGlobalHandler(streamerUserId: string, client: Client) {
         const lookupLogin = (maybeUser ? maybeUser.replace(/^@/, "") : authorLogin).toLowerCase();
         const mention = (maybeUser ? maybeUser.replace(/^@/, "") : (tags["display-name"] as string) || authorLogin) || "você";
         if (!lookupLogin) {
-          await sendChatMessageHelix(streamerUserId, targetLogin, `@${authorLogin} não consegui identificar seu usuário. Tente novamente.`);
+          await sendChatMessage(streamerUserId, targetLogin, `@${authorLogin} não consegui identificar seu usuário. Tente novamente.`);
           return;
         }
         const rank = await getRankForUserInChannel(streamerUserId, lookupLogin);
         if (!rank) {
-          await sendChatMessageHelix(streamerUserId, targetLogin, `@${mention} ainda não tem pontos neste canal. Participe dos palpites!`);
+          await sendChatMessage(streamerUserId, targetLogin, `@${mention} ainda não tem pontos neste canal. Participe dos palpites!`);
           return;
         }
-        await sendChatMessageHelix(streamerUserId, targetLogin, formatRankReply(targetLogin, rank, mention));
+        await sendChatMessage(streamerUserId, targetLogin, formatRankReply(targetLogin, rank, mention));
       } catch (err) {
         console.error("!rank error:", err);
         const who = (tags["username"] as string) || (tags["login"] as string) || "você";
-        await sendChatMessageHelix(streamerUserId, targetLogin, `@${who} não consegui consultar o ranking agora.`);
+        await sendChatMessage(streamerUserId, targetLogin, `@${who} não consegui consultar o ranking agora.`);
       }
       return;
     }
@@ -305,11 +436,11 @@ function attachGlobalHandler(streamerUserId: string, client: Client) {
       try {
         const top = await getTopNInChannel(streamerUserId, 5);
         const msg = formatTopReply(targetLogin, top);
-        await sendChatMessageHelix(streamerUserId, targetLogin, msg);
+        await sendChatMessage(streamerUserId, targetLogin, msg);
       } catch (err) {
         console.error("!top5 error:", err);
         const who = (tags["username"] as string) || (tags["login"] as string) || "você";
-        await sendChatMessageHelix(streamerUserId, targetLogin, `@${who} não consegui consultar o TOP 5 agora.`);
+        await sendChatMessage(streamerUserId, targetLogin, `@${who} não consegui consultar o TOP 5 agora.`);
       }
       return;
     }
@@ -324,12 +455,13 @@ function attachGlobalHandler(streamerUserId: string, client: Client) {
 // Mantém comandos ativos para todos os streamers
 // ===============================
 async function ensureGlobalCommandClients() {
-  // Conecta usuários que têm leitura de chat E permissão de escrita via Helix
+  // Conecta usuários que têm leitura de chat.
+  // Se o BOT não estiver configurado, também exige permissão de escrita via Helix.
   const users = await prisma.user.findMany({
     where: {
       AND: [
         { scopes: { contains: "chat:read" } },
-        { scopes: { contains: "user:write:chat" } },
+        ...(isBotEnabled() ? [] : [{ scopes: { contains: "user:write:chat" } }]),
       ],
     },
     select: { id: true, login: true },
@@ -436,8 +568,8 @@ async function tick() {
 
         if (firstAttach && ANNOUNCE_ON_ATTACH) {
           try {
-            await sendChatMessageHelix(userId, login,
-              `📣 Palpites abertos! Envie: <time1> <gols1>x<gols2> <time2> (ex.: Fluxo 2x1 Fúria).`);
+            await sendChatMessage(userId, login,
+              `📣 Palpites abertos! Envie: <time1> <gols1>x<gols2> <time2> (ex.: G3X 2x1 Fúria).`);
           } catch (e) {
             console.warn(`[worker] Failed to announce open capture in #${login}:`, e);
           }
@@ -461,6 +593,9 @@ async function tick() {
 
 (async function main() {
   console.log("[worker] starting…");
+  console.log(
+    `[worker] Bot mode: ${isBotEnabled() ? `ENABLED (@${BOT_USERNAME})` : "DISABLED"}`
+  );
   setInterval(tick, 5000);
   await tick();
 })();

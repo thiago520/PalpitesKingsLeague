@@ -13,6 +13,7 @@ type Region =
   | "FR"
   | "DE"
   | "MENA"
+  | "KWC_NATIONS"
   | "QL_ES"
   | "QL_MX";
 
@@ -34,7 +35,16 @@ type Match = {
   result: { goalsHome: number; goalsAway: number } | null;
 };
 
-type Props = { initialTeams: Team[]; initialMatches: Match[] };
+type BotStatus =
+  | { authorized: false }
+  | {
+      authorized: true;
+      login: string;
+      accessTokenExp: string;
+      scopes: string;
+    };
+
+type Props = { initialTeams: Team[]; initialMatches: Match[]; botStatus?: BotStatus };
 
 type Streamer = {
   id?: string | null;
@@ -52,6 +62,7 @@ const REGION_LABEL: Record<Region, string> = {
   FR: "França",
   DE: "Alemanha",
   MENA: "MENA",
+  KWC_NATIONS: "KWC Nations",
   QL_ES: "QL Espanha",
   QL_MX: "QL México",
 };
@@ -64,6 +75,7 @@ const REGION_ORDER: Region[] = [
   "FR",
   "DE",
   "MENA",
+  "KWC_NATIONS",
   "QL_ES",
   "QL_MX",
 ];
@@ -310,7 +322,7 @@ function AdminMatchCard({
   );
 }
 
-export default function AdminClient({ initialTeams, initialMatches }: Props) {
+export default function AdminClient({ initialTeams, initialMatches, botStatus }: Props) {
   const router = useRouter();
 
   /** ====== Streamers (inalterado) ====== */
@@ -374,6 +386,7 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
     FR: ["FR"],
     DE: ["DE"],
     MENA: ["MENA"],
+    KWC_NATIONS: ["KWC_NATIONS"],
     QL_ES: ["ES"],
     QL_MX: ["MX"],
   };
@@ -525,6 +538,42 @@ export default function AdminClient({ initialTeams, initialMatches }: Props) {
 
       <section className="max-w-6xl mx-auto px-4 py-6 space-y-8">
         <h2 className="text-3xl font-extrabold">Painel Admin</h2>
+
+        <div className="text-sm text-zinc-400">
+          {(() => {
+            if (!botStatus || botStatus.authorized === false) {
+              return (
+                <span>
+                  Bot Twitch: <span className="text-zinc-200">não autorizado</span>
+                </span>
+              );
+            }
+
+            const expMs = Date.parse(botStatus.accessTokenExp);
+            const expLabel = Number.isFinite(expMs)
+              ? new Intl.DateTimeFormat("pt-BR", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }).format(new Date(expMs))
+              : botStatus.accessTokenExp;
+            const expired = Number.isFinite(expMs) ? expMs <= Date.now() : false;
+
+            return (
+              <span>
+                Bot Twitch: <span className="text-zinc-200">autorizado</span>
+                {botStatus.login ? (
+                  <>
+                    {" "}
+                    <span className="text-zinc-500">(@{botStatus.login})</span>
+                  </>
+                ) : null}
+                {" "}• expira em: {" "}
+                <span className={expired ? "text-red-400" : "text-zinc-200"}>{expLabel}</span>
+                {" "}• scopes: <span className="text-zinc-200">{botStatus.scopes || "-"}</span>
+              </span>
+            );
+          })()}
+        </div>
 
         {/* Canais que já usaram o sistema */}
         <div className="rounded-2xl border border-amber-400/20 bg-zinc-900/60 p-5">

@@ -22,6 +22,14 @@ Edite o arquivo `.env` e substitua:
 ```bash
 TWITCH_CLIENT_ID="seu_client_id_aqui"
 TWITCH_CLIENT_SECRET="seu_client_secret_aqui"
+
+# (Opcional) Bot para enviar mensagens no chat
+TWITCH_BOT_ENABLED="true"
+TWITCH_BOT_USERNAME="PalpitesKings"
+OAUTH_BOT_REDIRECT_URI="http://localhost:3000/api/auth/twitch/bot/callback"
+
+# Autorize o bot (logado como admin):
+# http://localhost:3000/api/auth/twitch/bot/login
 ```
 
 ### **2. Como obter credenciais Twitch:**

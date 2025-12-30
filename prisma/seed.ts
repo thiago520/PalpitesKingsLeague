@@ -446,6 +446,130 @@ const TEAMS_MENA: TeamInput[] = [
   },
 ];
 
+/* ─────────────── 🌐 KWC NATIONS ─────────────── */
+const TEAMS_KWC_NATIONS: TeamInput[] = [
+  {
+    code: "ALG",
+    name: "Argélia",
+    aliases: ["Argélia", "Argelia", "ALG"],
+    badgeFile: "argelia.png",
+  },
+  {
+    code: "ARG",
+    name: "Argentina",
+    aliases: ["Argentina", "ARG"],
+    badgeFile: "argentina.png",
+  },
+  {
+    code: "BRA",
+    name: "Brasil",
+    aliases: ["Brasil", "BRA"],
+    badgeFile: "brasil.png",
+  },
+  {
+    code: "CHI",
+    name: "Chile",
+    aliases: ["Chile", "CHI"],
+    badgeFile: "chile.png",
+  },
+  {
+    code: "COL",
+    name: "Colômbia",
+    aliases: ["Colômbia", "Colombia", "COL"],
+    badgeFile: "colombia.png",
+  },
+  {
+    code: "FRA",
+    name: "França",
+    aliases: ["França", "Franca", "FRA"],
+    badgeFile: "franca.png",
+  },
+  {
+    code: "GER",
+    name: "Alemanha",
+    aliases: ["Alemanha", "Germany", "GER"],
+    badgeFile: "alemanha.png",
+  },
+  {
+    code: "IND",
+    name: "Índia",
+    aliases: ["Índia", "India", "IND"],
+    badgeFile: "india.png",
+  },
+  {
+    code: "IDN",
+    name: "Indonésia",
+    aliases: ["Indonésia", "Indonesia", "IDN"],
+    badgeFile: "indonesia.png",
+  },
+  {
+    code: "ITA",
+    name: "Itália",
+    aliases: ["Itália", "Italia", "ITA"],
+    badgeFile: "italia.png",
+  },
+  {
+    code: "JPN",
+    name: "Japão",
+    aliases: ["Japão", "Japao", "Japan", "JPN"],
+    badgeFile: "japao.png",
+  },
+  {
+    code: "MEX",
+    name: "México",
+    aliases: ["México", "Mexico", "MEX"],
+    badgeFile: "mexico.png",
+  },
+  {
+    code: "MAR",
+    name: "Marrocos",
+    aliases: ["Marrocos", "Morocco", "MAR"],
+    badgeFile: "marrocos.png",
+  },
+  {
+    code: "NED",
+    name: "Holanda",
+    aliases: ["Holanda", "Países Baixos", "Paises Baixos", "Netherlands", "NED"],
+    badgeFile: "holanda.png",
+  },
+  {
+    code: "PER",
+    name: "Peru",
+    aliases: ["Peru", "PER"],
+    badgeFile: "peru.png",
+  },
+  {
+    code: "POL",
+    name: "Polônia",
+    aliases: ["Polônia", "Polonia", "Poland", "POL"],
+    badgeFile: "polonia.png",
+  },
+  {
+    code: "QAT",
+    name: "Qatar",
+    aliases: ["Qatar", "Catar", "QAT"],
+    badgeFile: "qatar.png",
+  },
+  {
+    code: "KSA",
+    name: "Arábia Saudita",
+    aliases: ["Arábia Saudita", "Arabia Saudita", "Saudi Arabia", "KSA"],
+    badgeFile: "arabiasaudita.png",
+  },
+  {
+    code: "ESP",
+    name: "Espanha",
+    aliases: ["Espanha", "Spain", "ESP"],
+    badgeFile: "espanha.png",
+  },
+  {
+    code: "USA",
+    name: "EUA",
+    aliases: ["EUA", "USA", "Estados Unidos", "United States"],
+    badgeFile: "eua.png",
+  },
+];
+
 /* ─────────────── helpers ─────────────── */
 async function upsertTeam(t: TeamInput, region: MatchRegion) {
   const badgeFile = t.badgeFile ?? `${t.code.toLowerCase()}.png`;
@@ -477,6 +601,8 @@ async function seedTeams() {
   for (const t of TEAMS_FR) await upsertTeam(t, "FR");
   for (const t of TEAMS_DE) await upsertTeam(t, "DE");
   for (const t of TEAMS_MENA) await upsertTeam(t, "MENA");
+  for (const t of TEAMS_KWC_NATIONS)
+    await upsertTeam(t, "KWC_NATIONS" as MatchRegion);
 }
 
 async function main() {
