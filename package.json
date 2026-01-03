@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:with-db": "prisma generate && prisma migrate deploy && prisma db seed && next build",
-    "start": "next start",
+    "build:with-db": "prisma generate && prisma migrate deploy && prisma db seed && next build",    
+    "start": "prisma migrate deploy && prisma db seed && next start",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "worker:dev": "tsx worker/chat-worker.ts",
