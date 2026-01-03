@@ -58,3 +58,7 @@ Thumbs.db
 *.orig
 *.patch
 *.tgz
+
+
+# Backups locais (não commitar)
+kings_neon_backup.sql
