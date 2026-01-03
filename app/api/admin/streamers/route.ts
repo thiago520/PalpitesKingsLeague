@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   // quem já abriu captura ao menos uma vez (histórico)
   const caps = await prisma.capture.findMany({
@@ -9,7 +11,14 @@ export async function GET() {
     select: {
       streamerUserId: true,
       channelLogin: true,
-      streamer: { select: { id: true, login: true, displayName: true, avatarUrl: true } },
+      streamer: {
+        select: {
+          id: true,
+          login: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
     },
   });
 
