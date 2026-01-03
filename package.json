@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && prisma db seed && next build",
+    "build": "prisma generate && next build",
+    "build:with-db": "prisma generate && prisma migrate deploy && prisma db seed && next build",
     "start": "next start",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -42,8 +43,5 @@
   },
   "engines": {
     "node": ">=18.17"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }
